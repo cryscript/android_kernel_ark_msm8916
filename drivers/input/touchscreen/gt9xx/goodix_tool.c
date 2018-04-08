@@ -22,6 +22,7 @@
  */
 
 #include "gt9xx.h"
+#include "gt9xx_update.c"
 #include <linux/mutex.h>
 #include <linux/proc_fs.h>
 #include <linux/debugfs.h>
@@ -39,7 +40,7 @@ struct st_cmd_head {
 	u16 circle;	/* polling cycle */
 	u8  times;	/* plling times */
 	u8  retry;	/* I2C retry times */
-	u16 delay;	/* delay befor read or after write */
+	u16 delay;	/* delay before read or after write */
 	u16 data_len;	/* data length */
 	u8  addr_len;	/* address length */
 	u8  addr[2];	/* address */
@@ -67,13 +68,11 @@ static void tool_set_proc_name(char *procname)
 	"Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 	char date[20] = {0};
 	char month[4] = {0};
-	int i = 0, n_month = 1, n_day = 0, n_year = 0;
-	snprintf(date, 20, "%s", __DATE__);
+	int i = 0, n_month = 1, n_day = 0, n_year = 0, ret;
 
-	/* pr_debug("compile date: %s", date); */
-
-	sscanf(date, "%s %d %d", month, &n_day, &n_year);
-
+	ret = sscanf(date, "%s %d %d", month, &n_day, &n_year);
+	if (!ret)
+		return;
 	for (i = 0; i < 12; ++i) {
 		if (!memcmp(months[i], month, 3)) {
 			n_month = i+1;
@@ -302,12 +301,12 @@ static s32 fill_update_info(char __user *user_buf,
 /********************************************************
 Function:
     Goodix tool write function.
-nput:
+Input:
   standard proc write function param.
 Output:
     Return write length.
 ********************************************************/
-static s32 goodix_tool_write(struct file *filp, const char __user *userbuf,
+static ssize_t goodix_tool_write(struct file *filp, const char __user *userbuf,
 						size_t count, loff_t *ppos)
 {
 	s32 ret = 0;
@@ -320,22 +319,28 @@ static s32 goodix_tool_write(struct file *filp, const char __user *userbuf,
 		goto exit;
 	}
 
-	dev_dbg(&gt_client->dev, "wr:0x%02x, flag:0x%02x, flag addr:0x%02x%02x, flag val:0x%02x, flag rel:0x%02x, circle:%d, times:%d, retry:%d, delay:%d, data len:%d, addr len:%d, addr:0x%02x%02x, write len: %d.",
-		cmd_head.wr, cmd_head.flag, cmd_head.flag_addr[0],
-		cmd_head.flag_addr[1], cmd_head.flag_val,
-		cmd_head.flag_relation,	(s32)cmd_head.circle,
-		(s32)cmd_head.times, (s32)cmd_head.retry, (s32)cmd_head.delay,
-		(s32)cmd_head.data_len, (s32)cmd_head.addr_len,
+	dev_dbg(&gt_client->dev,
+		"wr: 0x%02x, flag:0x%02x, flag addr:0x%02x%02x\n", cmd_head.wr,
+		cmd_head.flag, cmd_head.flag_addr[0], cmd_head.flag_addr[1]);
+	dev_dbg(&gt_client->dev,
+		"flag val:0x%02x, flag rel:0x%02x,\n", cmd_head.flag_val,
+		cmd_head.flag_relation);
+	dev_dbg(&gt_client->dev, "circle:%u, times:%u, retry:%u, delay:%u\n",
+		(s32) cmd_head.circle, (s32) cmd_head.times,
+		(s32) cmd_head.retry, (s32)cmd_head.delay);
+	dev_dbg(&gt_client->dev,
+		"data len:%u, addr len:%u, addr:0x%02x%02x, write len: %u\n",
+		(s32)cmd_head.data_len,	(s32)cmd_head.addr_len,
 		cmd_head.addr[0], cmd_head.addr[1], (s32)count);
 
 	if (cmd_head.data_len > (data_length - GTP_ADDR_LENGTH)) {
-		dev_err(&gt_client->dev, "data len %d > data buff %d, rejected!\n",
+		dev_err(&gt_client->dev, "data len %u > data buff %d, rejected!\n",
 			cmd_head.data_len, (data_length - GTP_ADDR_LENGTH));
 		ret = -EINVAL;
 		goto exit;
 	}
 	if (cmd_head.addr_len > GTP_ADDR_LENGTH) {
-		dev_err(&gt_client->dev, "addr len %d > data buff %d, rejected!\n",
+		dev_err(&gt_client->dev, "addr len %u > data buff %d, rejected!\n",
 			cmd_head.addr_len, GTP_ADDR_LENGTH);
 		ret = -EINVAL;
 		goto exit;
@@ -385,7 +390,7 @@ static s32 goodix_tool_write(struct file *filp, const char __user *userbuf,
 
 		if (cmd_head.data_len > sizeof(ic_type)) {
 			dev_err(&gt_client->dev,
-				"data len %d > data buff %d, rejected!\n",
+				"data len %u > data buff %zu, rejected!\n",
 				cmd_head.data_len, sizeof(ic_type));
 			ret = -EINVAL;
 			goto exit;
@@ -447,7 +452,7 @@ static s32 goodix_tool_write(struct file *filp, const char __user *userbuf,
 		show_len = 0;
 		total_len = 0;
 		if (cmd_head.data_len + 1 > data_length) {
-			dev_err(&gt_client->dev, "data len %d > data buff %d, rejected!\n",
+			dev_err(&gt_client->dev, "data len %u > data buff %d, rejected!\n",
 			cmd_head.data_len + 1, data_length);
 			ret = -EINVAL;
 			goto exit;
@@ -479,7 +484,7 @@ Input:
 Output:
     Return read length.
 ********************************************************/
-static s32 goodix_tool_read(struct file *file, char __user *user_buf,
+static ssize_t goodix_tool_read(struct file *file, char __user *user_buf,
 					size_t count, loff_t *ppos)
 {
 	u16 data_len = 0;
