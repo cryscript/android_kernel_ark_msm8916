@@ -1,6 +1,6 @@
 /* drivers/input/touchscreen/gt9xx.h
  *
- * Copyright (c) 2013-2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
  *
  * Linux Foundation chooses to take subject only to the GPLv2 license
  * terms, and distributes only under these terms.
@@ -59,7 +59,7 @@ struct goodix_ts_platform_data {
 	bool force_update;
 	bool i2c_pull_up;
 	bool enable_power_off;
-	size_t config_data_len[GOODIX_MAX_CFG_GROUP];
+	int config_data_len[GOODIX_MAX_CFG_GROUP];
 	u8 *config_data[GOODIX_MAX_CFG_GROUP];
 	u32 button_map[MAX_BUTTONS];
 	u8 num_button;
@@ -116,7 +116,7 @@ extern u16 show_len;
 extern u16 total_len;
 
 /***************************PART1:ON/OFF define*******************************/
-#define GTP_CUSTOM_CFG			1
+#define GTP_CUSTOM_CFG			0
 #define GTP_ESD_PROTECT			0
 
 #define GTP_IRQ_TAB            {\
@@ -130,7 +130,7 @@ extern u16 total_len;
 #define GTP_IRQ_TAB_RISING	0
 #define GTP_IRQ_TAB_FALLING	1
 #if GTP_CUSTOM_CFG
-#define GTP_MAX_HEIGHT	        864
+#define GTP_MAX_HEIGHT		800
 #define GTP_MAX_WIDTH		480
 #define GTP_INT_TRIGGER		GTP_IRQ_TAB_RISING
 #else
