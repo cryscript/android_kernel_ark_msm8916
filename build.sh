@@ -9,10 +9,11 @@ export CONFIG_ABS_PATH="arch/${ARCH}/configs/${CONFIG_FILE}"
 export PATH=$PATH:${TOOL_CHAIN_PATH}
 export objdir="/media/fedor917/Fedor917/android/build/kernel/obj"
 export sourcedir="/media/fedor917/Fedor917/android/RR-N/kernel/ark/msm8916"
+mkdir -p $objdir
 cd $sourcedir
 compile() {
-  make O=$objdir ARCH=arm CROSS_COMPILE=${TOOL_CHAIN_PATH}/${CROSS_COMPILE}  $CONFIG_FILE -j4 
-  make O=$objdir -j6
+  make O=$objdir ARCH=arm CROSS_COMPILE=${TOOL_CHAIN_PATH}/${CROSS_COMPILE}  $CONFIG_FILE -j100
+  make O=$objdir -j100
 }
 module(){
   mkdir modules
@@ -24,9 +25,9 @@ module(){
 }
 dtbuild(){
   cd $sourcedir
-  ./tools/dtbToolCM -2 -o $objdir/arch/arm64/boot/dt.img -s 4096 -p $objdir/scripts/dtc/ $objdir/arch/arm64/boot/dts/
+  ./tools/dtbToolCM -2 -o $objdir/arch/arm/boot/dt.img -s 4096 -p $objdir/scripts/dtc/ $objdir/arch/arm/boot/dts/
 }
-compile 
+compile
 #cd ../
 #module
-dtbuild
+#dtbuild
